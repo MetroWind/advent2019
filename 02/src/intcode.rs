@@ -18,24 +18,12 @@ fn evalMult(codes: &mut Vec<i32>, cursor: usize)
     codes[result_addr] = codes[lhs_addr] * codes[rhs_addr];
 }
 
-fn strip(s: &str) -> &str
-{
-    let first = s.find(|c: char| !c.is_whitespace());
-    if first.is_none()
-    {
-        return &s[0..0];
-    }
-
-    let last = s.rfind(|c: char| !c.is_whitespace());
-    &s[first.unwrap()..last.unwrap()+1]
-}
-
 pub fn parse(code: &str) -> Vec<i32>
 {
-    strip(code).split(',').map(
+    code.trim().split(',').map(
         |part|
         {
-            let op = i32::from_str_radix(&part[..], 10);
+            let op = part.parse::<i32>();
             if op.is_err()
             {
                 panic!("Cannot convert '{}'.", part);
