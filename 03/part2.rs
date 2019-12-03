@@ -19,10 +19,10 @@ fn main()
     }
     let segments2 = wires::parseWire(&input[..]);
 
-    let mut min_dist = i32::max_value();
+    let mut min_dist = wires::LengthType::max_value();
 
-    let mut dist1: i32 = 0;
-    let mut dist2: i32 = 0;
+    let mut dist1: wires::LengthType = 0;
+    let mut dist2: wires::LengthType = 0;
 
     for seg_from_1 in &segments1
     {

@@ -2,6 +2,9 @@
 
 use std::vec::Vec;
 
+pub type LengthType = i32;
+pub type CoordType = (LengthType, LengthType);
+
 #[derive(PartialEq)]
 enum SegmentDirection
 {
@@ -11,24 +14,24 @@ enum SegmentDirection
 
 pub struct Segment
 {
-    pub begin: (i32, i32),
-    end: (i32, i32),
+    pub begin: CoordType,
+    end: CoordType,
     direction: SegmentDirection,
 }
 
-pub fn dist(p1: (i32, i32), p2: (i32, i32)) -> i32
+pub fn dist(p1: CoordType, p2: CoordType) -> LengthType
 {
     (p1.0 - p2.0).abs() + (p1.1 - p2.1).abs()
 }
 
 impl Segment
 {
-    fn fromStr(begin: (i32, i32), s: &str) -> Segment
+    fn fromStr(begin: CoordType, s: &str) -> Segment
     {
         let dir = s.bytes().nth(0).expect("RIP") as char;
-        let dist: i32 = s[1..].parse().expect(&format!("Failed to parse {}", s)[..]);
+        let dist: LengthType = s[1..].parse().expect(&format!("Failed to parse {}", s)[..]);
 
-        let end: (i32, i32) = match dir
+        let end: CoordType = match dir
         {
             'U' => (begin.0, begin.1 + dist),
             'R' => (begin.0 + dist, begin.1),
@@ -48,7 +51,7 @@ impl Segment
         }
     }
 
-    pub fn len(&self) -> i32
+    pub fn len(&self) -> LengthType
     {
         match self.direction
         {
@@ -57,7 +60,7 @@ impl Segment
         }
     }
 
-    pub fn intersect(&self, other: &Segment) -> Option<(i32, i32)>
+    pub fn intersect(&self, other: &Segment) -> Option<CoordType>
     {
         if self.direction == other.direction
         {
@@ -101,7 +104,7 @@ impl Segment
 
 pub fn parseWire(s: &str) -> Vec<Segment>
 {
-    let start: (i32, i32) = (0, 0);
+    let start: CoordType = (0, 0);
     let mut current = start.clone();
     let mut segments: Vec<Segment> = Vec::new();
 
