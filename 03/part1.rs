@@ -1,4 +1,6 @@
 use std::io::{self, prelude::*};
+use std::fs::File;
+use std::io::Write;
 
 mod wires;
 
@@ -19,6 +21,18 @@ fn main()
     }
     let segments2 = wires::parseWire(&input[..]);
 
+    // Generate SVG
+    let path = "wires.svg";
+    let bound = wires::Boundary::union(&wires::wireBoundary(&segments1),
+                                     &wires::wireBoundary(&segments2));
+
+    let mut file = File::create(path).expect("Failed to write file.");
+
+    file.write_all(format!("{}\n", bound.svgOpening(0.05)).as_bytes());
+    file.write_all(format!("{}\n", wires::wire2SVGPath(&segments1, "blue", 20.0)).as_bytes());
+    file.write_all(format!("{}\n", wires::wire2SVGPath(&segments2, "red", 20.0)).as_bytes());
+
+    // Find intersections
     let mut min_dist = wires::LengthType::max_value();
     for seg_from_1 in &segments1
     {
@@ -31,9 +45,12 @@ fn main()
                 {
                     min_dist = new_dist;
                 }
+                file.write_all(format!("{}\n", wires::svgPoint(point, 40.0, "black")).as_bytes());
             }
         }
     }
 
     println!("{}", min_dist);
+
+    file.write_all(format!("</svg>\n").as_bytes());
 }
