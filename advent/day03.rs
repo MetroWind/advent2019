@@ -1,23 +1,17 @@
-use std::io::{self, prelude::*};
 use std::fs::File;
 use std::io::Write;
 
-mod wires;
-mod advent;
+use crate::wires;
+use crate::advent::advent;
 
-struct Day03 {}
+pub struct Day03 {}
 impl advent::Solution for Day03
 {
     fn part1(&self, input: &str) -> String
     {
-        let segments1 = wires::parseWire(&input[..]);
-
-        input.clear();
-        if io::stdin().lock().read_line(&mut input).is_err()
-        {
-            panic!("Failed to read input.");
-        }
-        let segments2 = wires::parseWire(&input[..]);
+        let mut lines = input.lines();
+        let segments1 = wires::parseWire(lines.next().expect("Failed to read line"));
+        let segments2 = wires::parseWire(lines.next().expect("Failed to read line"));
 
         // Generate SVG
         let path = "wires.svg";
@@ -54,16 +48,11 @@ impl advent::Solution for Day03
         min_dist.to_string()
     }
 
-    fn part1(&self, input: &str) -> String
+    fn part2(&self, input: &str) -> String
     {
-        let segments1 = wires::parseWire(&input[..]);
-
-        input.clear();
-        if io::stdin().lock().read_line(&mut input).is_err()
-        {
-            panic!("Failed to read input.");
-        }
-        let segments2 = wires::parseWire(&input[..]);
+        let mut lines = input.lines();
+        let segments1 = wires::parseWire(lines.next().expect("Failed to read line"));
+        let segments2 = wires::parseWire(lines.next().expect("Failed to read line"));
 
         let mut min_dist = wires::LengthType::max_value();
 
