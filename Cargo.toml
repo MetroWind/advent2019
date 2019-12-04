@@ -1,5 +1,5 @@
 [package]
-name = "advent-2019-03"
+name = "advent-2019"
 version = "0.1.0"
 authors = ["MetroWind <chris.corsair@gmail.com>"]
 edition = "2018"
@@ -7,11 +7,3 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-
-[[bin]]
-name = "part1"
-path = "part1.rs"
-
-[[bin]]
-name = "part2"
-path = "part2.rs"
