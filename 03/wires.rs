@@ -68,6 +68,17 @@ xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">",
                 self.width() as f64 * scale, self.height() as f64 * scale,
                 self.left, self.bottom, self.width(), self.height())
     }
+
+    pub fn expanded(self, by: LengthType) -> Boundary
+    {
+        Boundary
+        {
+            top: self.top + by,
+            right: self.right + by,
+            bottom: self.bottom - by,
+            left: self.left - by,
+        }
+    }
 }
 
 pub struct Segment
@@ -210,4 +221,13 @@ pub fn svgPoint(point: CoordType, size: f64, color: &str) -> String
 {
     format!("<circle cx=\"{}\" cy=\"{}\" r=\"{}\" stroke=\"none\" fill=\"{}\" />",
             point.0, point.1, size, color)
+}
+
+pub fn svgOrigin(size: f64, width: f64, color: &str) -> String
+{
+    format!(r#"
+<line x1="-{size}" y1="{size}" x2="{size}" y2="-{size}" stroke="{color}" stroke-width="{width}" />
+<line x1="-{size}" y1="-{size}" x2="{size}" y2="{size}" stroke="{color}" stroke-width="{width}" />
+"#,
+            size=size, color=color, width=width)
 }
