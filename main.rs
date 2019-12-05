@@ -1,64 +1,46 @@
+#![allow(non_snake_case)]
+
 use std::io::{self, prelude::*};
 use std::time::Instant;
-
-extern crate clap;
-use clap::value_t;
-
-mod advent
-{
-    pub mod advent;
-    pub mod day01;
-    pub mod day02;
-    pub mod day03;
-    pub mod day04;
-}
+use std::env;
+use std::process::exit;
 
 mod wires;
 mod intcode;
 
-fn getDay(x: u8) -> Box<dyn advent::advent::Solution>
+extern crate meta;
+
+meta::importAdvent!();
+meta::defineRun!(day part input);
+
+fn usage(name: &String)
 {
-    match x
-    {
-        1 => Box::new(advent::day01::Day01 {}),
-        2 => Box::new(advent::day02::Day02 {}),
-        3 => Box::new(advent::day03::Day03 {}),
-        4 => Box::new(advent::day04::Day04 {}),
-        _ => panic!("Unknow day: {}", x),
-    }
+    println!("Usage: {name} DAY PART
+
+Example: {name} 4 1  # Run day 4 part 1.", name=name)
 }
 
 fn main()
 {
-    let args = clap::App::new("Advent of Code 2019")
-        .version("0.1.0")
-        .author("MetroWind <chris.corsair@gmail.com>")
-        .arg(clap::Arg::with_name("DAY")
-             .help("The day (1--25)")
-             .required(true)
-             .index(1))
-        .arg(clap::Arg::with_name("PART")
-             .required(true)
-             .possible_values(&["1", "2"])
-             .help("Which part to run. (1 or 2)")
-             .index(2))
-        .get_matches();
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 3
+    {
+        usage(&args[0]);
+        exit(1);
+    }
 
-    let day = clap::value_t!(args, "DAY", u8).expect("Invalid day");
-    let part = clap::value_t!(args, "PART", u8).unwrap();
+    let day: u8 = args[1].parse::<u8>().unwrap_or_else(|_| {usage(&args[0]); 0});
+    let part: u8 = args[2].parse().unwrap_or_else(|_| {usage(&args[0]); 0});
 
     let mut input_raw = String::new();
     io::stdin().lock().read_to_string(&mut input_raw).expect("Failed to read input");
     let input = input_raw.trim();
 
     let begin = Instant::now();
-    match part
-    {
-        1 => println!("{}", getDay(day).part1(input)),
-        2 => println!("{}", getDay(day).part2(input)),
-        _ => unreachable!(),
-    }
+    let output = run(day, part, input);
     let duration = begin.elapsed();
+
+    println!("{}", output);
     println!("Run time: {}ms",
              (duration.as_secs() as f64
               + duration.subsec_nanos() as f64 * 1e-9) * 1000.0);
