@@ -11,7 +11,7 @@ fn parseInput(input: &str) -> (u32, u32)
     result
 }
 
-pub fn part1(input: &str) -> String
+pub fn part1(input: &str) -> u32
 {
     fn isValid(x: u32, min: u32, max: u32) -> bool
     {
@@ -45,7 +45,7 @@ pub fn part1(input: &str) -> String
         repeated
     }
 
-    let mut count = 0;
+    let mut count: u32 = 0;
     let range = parseInput(input);
     for x in range.0..range.1+1
     {
@@ -54,10 +54,10 @@ pub fn part1(input: &str) -> String
             count += 1;
         }
     }
-    count.to_string()
+    count
 }
 
-pub fn part2(input: &str) -> String
+pub fn part2(input: &str) -> u32
 {
     fn isValid(x: u32, min: u32, max: u32) -> bool
     {
@@ -107,7 +107,7 @@ pub fn part2(input: &str) -> String
         two_repeat
     }
 
-    let mut count = 0;
+    let mut count: u32 = 0;
     let range = parseInput(input);
     for x in range.0..range.1+1
     {
@@ -116,5 +116,5 @@ pub fn part2(input: &str) -> String
             count += 1;
         }
     }
-    count.to_string()
+    count
 }

@@ -1,4 +1,4 @@
-pub fn part1(input: &str) -> String
+pub fn part1(input: &str) -> i32
 {
     fn fuel(mass: i32) -> i32
     {
@@ -16,10 +16,10 @@ pub fn part1(input: &str) -> String
             }
             fuel(input.unwrap())
         }).sum();
-    result.to_string()
+    result
 }
 
-pub fn part2(input: &str) -> String
+pub fn part2(input: &str) -> i32
 {
     fn fuel_inner(mass: i32) -> i32
     {
@@ -57,5 +57,5 @@ pub fn part2(input: &str) -> String
             }
             fuel(input.unwrap())
         }).sum();
-    result.to_string()
+    result
 }

@@ -2,14 +2,14 @@ use std::vec::Vec;
 
 use crate::intcode;
 
-pub fn part1(input: &str) -> String
+pub fn part1(input: &str) -> i32
 {
     let mut codes: Vec<i32> = intcode::parse(&input[..]);
     codes[1] = 12;
     codes[2] = 2;
 
     intcode::eval(&mut codes);
-    codes[0].to_string()
+    codes[0]
 }
 
 pub fn part2(input: &str) -> String

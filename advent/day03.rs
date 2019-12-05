@@ -3,7 +3,7 @@ use std::io::Write;
 
 use crate::wires;
 
-pub fn part1(input: &str) -> String
+pub fn part1(input: &str) -> wires::LengthType
 {
     let mut lines = input.lines();
     let segments1 = wires::parseWire(lines.next().expect("Failed to read line"));
@@ -48,10 +48,10 @@ pub fn part1(input: &str) -> String
     file.write_all(wires::svgOrigin(50.0, 20.0, "#2f3542").as_bytes()).expect("Failed to write SVG.");
     file.write_all(format!("</svg>\n").as_bytes()).expect("Failed to write SVG.");
 
-    min_dist.to_string()
+    min_dist
 }
 
-pub fn part2(input: &str) -> String
+pub fn part2(input: &str) -> wires::LengthType
 {
     let mut lines = input.lines();
     let segments1 = wires::parseWire(lines.next().expect("Failed to read line"));
@@ -81,5 +81,5 @@ pub fn part2(input: &str) -> String
         dist1 += seg_from_1.len();
     }
 
-    min_dist.to_string()
+    min_dist
 }

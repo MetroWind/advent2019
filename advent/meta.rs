@@ -78,12 +78,11 @@ fn matchPart(day: &Day, part: &str, input: &str) -> String
 }
 
 #[proc_macro]
-pub fn defineRun(item: TokenStream) -> TokenStream
+pub fn defineRun(_: TokenStream) -> TokenStream
 {
-    let mut iter = item.into_iter();
-    let day_var = iter.next().unwrap().to_string();
-    let part_var = iter.next().unwrap().to_string();
-    let input_var = iter.next().unwrap().to_string();
+    let day_var = "day";
+    let part_var = "part";
+    let input_var = "input";
 
     let days = Day::vec_from_dir("advent").unwrap();
     let code: String = format!(

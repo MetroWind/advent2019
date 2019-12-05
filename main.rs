@@ -11,7 +11,7 @@ mod intcode;
 extern crate meta;
 
 meta::importAdvent!();
-meta::defineRun!(day part input);
+meta::defineRun!();
 
 fn usage(name: &String)
 {
@@ -29,7 +29,7 @@ fn main()
         exit(1);
     }
 
-    let day: u8 = args[1].parse::<u8>().unwrap_or_else(|_| {usage(&args[0]); 0});
+    let day: u8 = args[1].parse().unwrap_or_else(|_| {usage(&args[0]); 0});
     let part: u8 = args[2].parse().unwrap_or_else(|_| {usage(&args[0]); 0});
 
     let mut input_raw = String::new();
