@@ -1,4 +1,4 @@
-use crate::intcode;
+use crate::intcode::intcode;
 
 pub fn part1(input: &str) -> String
 {

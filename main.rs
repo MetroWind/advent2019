@@ -6,7 +6,10 @@ use std::env;
 use std::process::exit;
 
 mod wires;
-mod intcode;
+mod intcode
+{
+    pub mod intcode;
+}
 
 extern crate meta;
 
