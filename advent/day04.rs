@@ -118,3 +118,19 @@ pub fn part2(input: &str) -> u32
     }
     count
 }
+
+#[test]
+fn testPart1()
+{
+    assert_eq!(part1("111111-111111"), 1);
+    assert_eq!(part1("223450-223450"), 0);
+    assert_eq!(part1("123789-123789"), 0);
+}
+
+#[test]
+fn testPart2()
+{
+    assert_eq!(part2("112233-112233"), 1);
+    assert_eq!(part2("123444-123444"), 0);
+    assert_eq!(part2("111122-111122"), 1);
+}

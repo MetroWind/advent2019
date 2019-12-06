@@ -1,5 +1,7 @@
 = My Entry to Advent of Code 2019
 
+image:https://img.shields.io/github/workflow/status/MetroWind/advent2019/build-test[badge!]
+
 Learning Rust by doing https://adventofcode.com/2019.
 
 == Advent

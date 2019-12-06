@@ -59,3 +59,19 @@ pub fn part2(input: &str) -> i32
         }).sum();
     result
 }
+
+#[test]
+fn testPart1()
+{
+    assert_eq!(part1("12"), 2);
+    assert_eq!(part1("1969"), 654);
+    assert_eq!(part1("100756"), 33583);
+}
+
+#[test]
+fn testPart2()
+{
+    assert_eq!(part2("14"), 2);
+    assert_eq!(part2("1969"), 966);
+    assert_eq!(part2("100756"), 50346);
+}

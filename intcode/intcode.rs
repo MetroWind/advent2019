@@ -105,6 +105,17 @@ impl IntCodeComputer
         }
     }
 
+    #[allow(dead_code)]
+    pub fn reset(&mut self)
+    {
+        self.mem.clear();
+        self.cursor = 0;
+        self.halt = false;
+        self.input.clear();
+        self.cursor_input = 0;
+        self.output.clear();
+    }
+
     pub fn eval(&mut self, codes: &Vec<i32>, input: Option<&Vec<i32>>)
     {
         self.mem = codes.clone();
@@ -253,4 +264,112 @@ impl IntCodeComputer
         self.mem[result_addr] = if lhs == rhs {1} else {0};
         self.skip(code);
     }
+}
+
+// ========== Tests =================================================>
+
+#[test]
+fn testAdd()
+{
+    let mut computer = IntCodeComputer::new();
+
+    computer.eval(&vec![1,0,0,0,99], None);
+    assert_eq!(computer.mem, vec![2,0,0,0,99]);
+}
+
+#[test]
+fn testMult()
+{
+    let mut computer = IntCodeComputer::new();
+
+    computer.eval(&vec![2,3,0,3,99], None);
+    assert_eq!(computer.mem, vec![2,3,0,6,99]);
+
+    computer.reset();
+    computer.eval(&vec![2,4,4,5,99,0], None);
+    assert_eq!(computer.mem, vec![2,4,4,5,99,9801]);
+}
+
+#[test]
+fn testBasic()
+{
+    let mut computer = IntCodeComputer::new();
+    computer.eval(&vec![1,1,1,4,99,5,6,0,99], None);
+    assert_eq!(computer.mem, vec![30,1,1,4,2,5,6,0,99]);
+}
+
+#[test]
+fn testIO()
+{
+    let mut computer = IntCodeComputer::new();
+    computer.eval(&vec![3,0,99], Some(&vec![10]));
+    assert_eq!(computer.mem, vec![10,0,99]);
+
+    computer.reset();
+    computer.eval(&vec![3,0,3,1,99], Some(&vec![10,20]));
+    assert_eq!(computer.mem, vec![10,20,3,1,99]);
+
+    computer.reset();
+    computer.eval(&vec![4,0,99], None);
+    assert_eq!(computer.output, vec![4]);
+
+    computer.reset();
+    computer.eval(&vec![4,0,4,4,99], None);
+    assert_eq!(computer.output, vec![4,99]);
+}
+
+#[test]
+fn testModes()
+{
+    let mut computer = IntCodeComputer::new();
+    computer.eval(&vec![1002,4,3,4,33], None);
+    assert_eq!(computer.mem, vec![1002,4,3,4,99]);
+
+    computer.reset();
+    computer.eval(&vec![1101,100,-1,4,0], None);
+    assert_eq!(computer.mem, vec![1101,100,-1,4,99]);
+}
+
+#[test]
+fn testConditional()
+{
+    let mut computer = IntCodeComputer::new();
+    computer.eval(&vec![3,9,8,9,10,9,4,9,99,-1,8], Some(&vec![8]));
+    assert_eq!(computer.output, vec![1]);
+
+    computer.reset();
+    computer.eval(&vec![3,9,7,9,10,9,4,9,99,-1,8], Some(&vec![7]));
+    assert_eq!(computer.output, vec![1]);
+
+    computer.reset();
+    computer.eval(&vec![3,3,1108,-1,8,3,4,3,99], Some(&vec![7]));
+    assert_eq!(computer.output, vec![0]);
+
+    computer.reset();
+    computer.eval(&vec![3,3,1107,-1,8,3,4,3,99], Some(&vec![8]));
+    assert_eq!(computer.output, vec![0]);
+}
+
+#[test]
+fn testJump()
+{
+    let mut computer = IntCodeComputer::new();
+    computer.eval(&vec![3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9],
+                  Some(&vec![0]));
+    assert_eq!(computer.output, vec![0]);
+
+    computer.reset();
+    computer.eval(&vec![3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9],
+                  Some(&vec![-1]));
+    assert_eq!(computer.output, vec![1]);
+
+    computer.reset();
+    computer.eval(&vec![3,3,1105,-1,9,1101,0,0,12,4,12,99,1],
+                  Some(&vec![0]));
+    assert_eq!(computer.output, vec![0]);
+
+    computer.reset();
+    computer.eval(&vec![3,3,1105,-1,9,1101,0,0,12,4,12,99,1],
+                  Some(&vec![1234]));
+    assert_eq!(computer.output, vec![1]);
 }

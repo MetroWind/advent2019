@@ -97,3 +97,37 @@ pub fn part2(input: &str) -> usize
         }
     }
 }
+
+#[test]
+fn testPart1()
+{
+    assert_eq!(part1("COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L"), 42);
+}
+
+#[test]
+fn testPart2()
+{
+    assert_eq!(part2("COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L
+K)YOU
+I)SAN"), 4);
+}
