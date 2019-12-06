@@ -10,7 +10,9 @@ Run `cargo build` to build, and run `cargo run DAY PART` to run.
 The following example run day 5, part 2.
 
 [example]
+----
 cargo run 5 2
+----
 
 In all cases, the input is taken from stdin, and output is printed to
 stdout, together with time duration of the run.
@@ -23,7 +25,9 @@ The Intcode puzzles are so fun, I decided to write a dedicated
 emulator and an assembler for it. To run the emulator, run
 
 [example]
+----
 cargo run --bin emulator -- FILE
+----
 
 where `FILE` is the file containing your Intcode source code. It takes
 input from stdin (if there’s no input, you still need to press
@@ -32,7 +36,9 @@ input from stdin (if there’s no input, you still need to press
 To run the assembler, run
 
 [example]
+----
 cargo run --bin assembler
+----
 
 The assembler read what I call “inssembly” code from stdin, and
 assemble it to Intcode, which is output to stdout. Here’s an example
