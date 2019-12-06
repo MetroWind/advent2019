@@ -17,3 +17,7 @@ path = "advent/meta.rs"
 [[bin]]
 name = "advent-2019"
 path = "main.rs"
+
+[[bin]]
+name = "assembler"
+path = "intcode/assembler.rs"

@@ -1,6 +1,6 @@
 use std::vec::Vec;
 use std::str::FromStr;
-use std::fmt::Display
+use std::fmt;
 
 enum ParserState
 {
@@ -8,12 +8,14 @@ enum ParserState
     Head,
     Arg,
     NotAllowed,
+    End,
 }
 
 enum Argument
 {
     Position(String),
     Immediate(i32),
+    Label(String),
 }
 
 enum StatementType
@@ -25,8 +27,11 @@ enum StatementType
 
 impl FromStr for Argument
 {
+    type Err = String;
+
     fn from_str(s: &str) -> Result<Self, String>
     {
+
         if s.find(char::is_whitespace).is_some()
         {
             return Err(format!("Invalid argument: {}", s));
@@ -36,6 +41,11 @@ impl FromStr for Argument
         {
             Ok(Argument::Immediate(num))
         }
+        else if s.starts_with(":")
+        {
+            let name: String = s[1..].to_string();
+            Ok(Argument::Label(name))
+        }
         else
         {
             Ok(Argument::Position(String::from(s)))
@@ -43,19 +53,20 @@ impl FromStr for Argument
     }
 }
 
-impl Display for Argument
+impl fmt::Display for Argument
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
         match self
         {
-            Position(s) => write!(f, "Position({})", s),
-            Immediate(x) => write!(f, "Immediate({})", x),
+            Argument::Position(s) => write!(f, "Position({})", s),
+            Argument::Immediate(x) => write!(f, "Immediate({})", x),
+            Argument::Label(s) => write!(f, "Label({})", s),
         }
     }
 }
 
-struct Statement
+pub struct Statement
 {
     the_type: StatementType,
     address: usize,
@@ -63,7 +74,20 @@ struct Statement
     head: String,
 }
 
-impl Display for Statement
+impl Statement
+{
+    fn len(&self) -> usize
+    {
+        match self.the_type
+        {
+            // This can get complicated later.
+            StatementType::Code => self.arguments.len() + 1,
+            _ => 0,
+        }
+    }
+}
+
+impl fmt::Display for Statement
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
     {
@@ -72,11 +96,19 @@ impl Display for Statement
             StatementType::Label => write!(f, "{}. {}:", self.address, self.head),
             _ =>
             {
-                let arg_str: String = Arguments.iter().map(|arg| arg.to_string())
-                    .collect().join(", ");
+                let arg_str: String = self.arguments.iter().map(|arg| arg.to_string())
+                    .collect::<Vec<String>>().join(", ");
                 write!(f, "{}. {} {}", self.address, self.head, arg_str)
             }
         }
+    }
+}
+
+impl fmt::Debug for Statement
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+    {
+        write!(f, "{}", self.to_string())
     }
 }
 
@@ -113,13 +145,12 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
                     state = ParserState::Head;
                     word.push(c);
                 }
-                cursor += 1;
             },
             ParserState::Head =>
             {
                 if c.is_whitespace()
                 {
-                    statement.head = word.collect();
+                    statement.head = word.iter().collect();
                     word.clear();
                     state = ParserState::Arg;
                     statement.the_type = StatementType::Code
@@ -128,17 +159,17 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
                 {
                     if word.is_empty()
                     {
-                        return Err("Empty label");
+                        return Err(String::from("Empty label"));
                     }
 
-                    statement.head = word.collect();
+                    statement.head = word.iter().collect();
                     word.clear();
                     state = ParserState::NotAllowed;
                     statement.the_type = StatementType::Label
                 }
                 else if c == '#'
                 {
-                    statement.head = word.collect();
+                    statement.head = word.iter().collect();
                     word.clear();
                     statement.the_type = StatementType::Code;
                     state = ParserState::End;
@@ -147,7 +178,6 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
                 {
                     word.push(c);
                 }
-                cursor += 1;
             },
             ParserState::Arg =>
             {
@@ -155,9 +185,9 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
                 {
                     if word.is_empty()
                     {
-                        return Err("Empty argument");
+                        return Err(String::from("Empty argument"));
                     }
-                    let arg_str = word.collect().trim();
+                    let arg_str = String::from(word.iter().collect::<String>().trim());
                     statement.arguments.push(arg_str.parse()?);
                     word.clear();
 
@@ -170,7 +200,6 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
                 {
                     word.push(c);
                 }
-                cursor += 1;
             }
             ParserState::End =>
             {
@@ -180,22 +209,24 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
             {
                 if !(c.is_whitespace()) && c != '#'
                 {
-                    Err("Invalid statement");
+                    return Err(String::from("Invalid statement"));
                 }
             }
         };
+        cursor += 1;
     }
     Ok(statement)
 }
 
-fn parse(source: &str) -> Result<Vec<Statement>, String>
+pub fn parse(source: &str) -> Result<Vec<Statement>, String>
 {
     let mut result: Vec<Statement> = vec![];
+    let mut address: usize = 0;
 
     for line in source.lines()
     {
-        let statement = parseLine(line)?;
-
+        let statement: Statement = parseLine(line, address)?;
+        address += statement.len();
         result.push(statement);
     }
     Ok(result)
