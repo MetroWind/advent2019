@@ -1,0 +1,68 @@
+= My Entry to Advent of Code 2019
+
+Learning Rust by doing https://adventofcode.com/2019.
+
+== Advent
+
+=== Build and run
+
+Run `cargo build` to build, and run `cargo run DAY PART` to run.
+The following example run day 5, part 2.
+
+[example]
+cargo run 5 2
+
+In all cases, the input is taken from stdin, and output is printed to
+stdout, together with time duration of the run.
+
+=== Code arrangement
+
+== Intcode
+
+The Intcode puzzles are so fun, I decided to write a dedicated
+emulator and an assembler for it. To run the emulator, run
+
+[example]
+cargo run --bin emulator -- FILE
+
+where `FILE` is the file containing your Intcode source code. It takes
+input from stdin (if there’s no input, you still need to press
+`ctrl+d`), and output to stdout.
+
+To run the assembler, run
+
+[example]
+cargo run --bin assembler
+
+The assembler read what I call “inssembly” code from stdin, and
+assemble it to Intcode, which is output to stdout. Here’s an example
+inssembly that does integer division:
+
+[source]
+----
+# Integer division
+
+input arg1
+input arg2
+
+addition:
+add 1, result, result
+mult result, arg2, test
+
+eq test, arg1, equal_result
+jmpt equal_result, :output
+
+less arg1, test, less_result
+jmpt less_result, :minus1       # We overshot, need to minus 1.
+
+jmpt 1, :addition
+
+output:
+output result
+
+halt
+
+minus1:
+add -1, result, result
+jmpt 1, :output
+----

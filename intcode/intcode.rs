@@ -85,7 +85,7 @@ pub struct IntCodeComputer
     pub mem: Vec<i32>,
     cursor: usize,
     halt: bool,
-    input: Vec<i32>,
+    pub input: Vec<i32>,
     cursor_input: usize,
     pub output: Vec<i32>,
 }
@@ -163,25 +163,8 @@ impl IntCodeComputer
 
     fn evalAdd(&mut self, code: &OpCode)
     {
-        let lhs = match code.arg_modes[0]
-        {
-            ArgMode::Position =>
-            {
-                let lhs_addr = self.mem[self.cursor+1] as usize;
-                self.mem[lhs_addr]
-            },
-            ArgMode::Immediate => self.mem[self.cursor+1],
-        };
-
-        let rhs = match code.arg_modes[1]
-        {
-            ArgMode::Position =>
-            {
-                let rhs_addr = self.mem[self.cursor+2] as usize;
-                self.mem[rhs_addr]
-            }
-            ArgMode::Immediate => self.mem[self.cursor + 2],
-        };
+        let lhs = self.getArg(code, 0);
+        let rhs = self.getArg(code, 1);
 
         let result_addr = self.mem[self.cursor+3] as usize;
         self.mem[result_addr] = lhs + rhs;
@@ -190,25 +173,8 @@ impl IntCodeComputer
 
     fn evalMult(&mut self, code: &OpCode)
     {
-        let lhs = match code.arg_modes[0]
-        {
-            ArgMode::Position =>
-            {
-                let lhs_addr = self.mem[self.cursor+1] as usize;
-                self.mem[lhs_addr]
-            },
-            ArgMode::Immediate => self.mem[self.cursor+1],
-        };
-
-        let rhs = match code.arg_modes[1]
-        {
-            ArgMode::Position =>
-            {
-                let rhs_addr = self.mem[self.cursor+2] as usize;
-                self.mem[rhs_addr]
-            }
-            ArgMode::Immediate => self.mem[self.cursor + 2],
-        };
+        let lhs = self.getArg(code, 0);
+        let rhs = self.getArg(code, 1);
 
         let result_addr = self.mem[self.cursor+3] as usize;
         self.mem[result_addr] = lhs * rhs;
@@ -247,7 +213,6 @@ impl IntCodeComputer
         if arg != 0
         {
             self.cursor = self.getArg(code, 1) as usize;
-            println!("True jumped to {}.", self.cursor);
         }
         else
         {
@@ -262,7 +227,6 @@ impl IntCodeComputer
         if arg == 0
         {
             self.cursor = self.getArg(code, 1) as usize;
-            println!("False jumped to {}.", self.cursor);
         }
         else
         {

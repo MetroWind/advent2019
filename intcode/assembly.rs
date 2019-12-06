@@ -1,6 +1,7 @@
 use std::vec::Vec;
 use std::str::FromStr;
 use std::fmt;
+use std::collections::HashMap;
 
 enum ParserState
 {
@@ -76,7 +77,7 @@ pub struct Statement
 
 impl Statement
 {
-    fn len(&self) -> usize
+    pub fn len(&self) -> usize
     {
         match self.the_type
         {
@@ -84,6 +85,106 @@ impl Statement
             StatementType::Code => self.arguments.len() + 1,
             _ => 0,
         }
+    }
+
+    fn mode(&self) -> i32
+    {
+        let mut base: i32 = 100;
+        let mut mode: i32 = 0;
+        for arg in &self.arguments
+        {
+            mode += match arg
+            {
+                Argument::Immediate(_) | Argument::Label(_) => base * 1,
+                Argument::Position(_) => base * 0,
+            };
+            base *= 10;
+        }
+        mode
+    }
+
+    pub fn opCode(&self) -> Result<i32, String>
+    {
+        let mode = self.mode();
+
+        let code: i32 = mode + match &(self.head)[..]
+        {
+            "add" =>
+            {
+                if self.arguments.len() != 3
+                {
+                    return Err(String::from("Add should have 3 arguments"));
+                }
+                1
+            },
+            "mult" =>
+            {
+                if self.arguments.len() != 3
+                {
+                    return Err(String::from("Mult should have 3 arguments"));
+                }
+                2
+            },
+            "input" =>
+            {
+                if self.arguments.len() != 1
+                {
+                    return Err(String::from("Input should have 1 argument"));
+                }
+                3
+            },
+            "output" =>
+            {
+                if self.arguments.len() != 1
+                {
+                    return Err(String::from("Output should have 1 argument"));
+                }
+                4
+            },
+            "jmpt" =>
+            {
+                if self.arguments.len() != 2
+                {
+                    return Err(String::from("Jmpt should have 2 arguments"));
+                }
+                5
+            },
+            "jmpf" =>
+            {
+                if self.arguments.len() != 2
+                {
+                    return Err(String::from("Jmpf should have 2 arguments"));
+                }
+                6
+            },
+            "less" =>
+            {
+                if self.arguments.len() != 3
+                {
+                    return Err(String::from("Less should have 3 arguments"));
+                }
+                7
+            },
+            "eq" =>
+            {
+                if self.arguments.len() != 3
+                {
+                    return Err(String::from("Eq should have 3 arguments"));
+                }
+                8
+            },
+            "halt" =>
+            {
+                if self.arguments.len() != 0
+                {
+                    return Err(String::from("Halt doesn't take arguments"));
+                }
+                99
+            },
+            _ => { return Err(format!("Unknown instruction: {}", self.head)); },
+        };
+
+        Ok(code)
     }
 }
 
@@ -230,4 +331,91 @@ pub fn parse(source: &str) -> Result<Vec<Statement>, String>
         result.push(statement);
     }
     Ok(result)
+}
+
+pub fn assemble(statements: &Vec<Statement>) -> Result<Vec<i32>, String>
+{
+    let mut code: Vec<i32> = vec![];
+    if statements.is_empty()
+    {
+        return Ok(code);
+    }
+
+    let mut address_labels: HashMap<&str, usize> = HashMap::new();
+    let mut address_vars: HashMap<&str, usize> = HashMap::new();
+
+    // First pass, find all the lables.
+    for statement in statements
+    {
+        match statement.the_type
+        {
+            StatementType::Label =>
+            {
+                if address_labels.contains_key(&statement.head[..])
+                {
+                    return Err(format!("Duplicated lable: {}", statement.head));
+                }
+                address_labels.insert(&statement.head, statement.address);
+            },
+            _ => {}
+        }
+    }
+
+    let last_statem = statements.last().unwrap();
+    let code_size = last_statem.address + last_statem.len();
+
+    // Second pass, fill in addresses.
+    for statement in statements
+    {
+        match statement.the_type
+        {
+            StatementType::Code =>
+            {
+                code.push(statement.opCode()?);
+                for arg in &statement.arguments
+                {
+                    match arg
+                    {
+                        Argument::Immediate(x) =>
+                        {
+                            code.push(x.clone());
+                        },
+                        Argument::Position(var) =>
+                        {
+                            if address_vars.contains_key(&var[..])
+                            {
+                                code.push(address_vars.get(&var[..]).unwrap().clone() as i32);
+                            }
+                            else
+                            {
+                                let addr = address_vars.len() + code_size;
+                                address_vars.insert(&var[..], addr);
+                                code.push(addr as i32);
+                            }
+                        },
+                        Argument::Label(label) =>
+                        {
+                            if address_labels.contains_key(&label[..])
+                            {
+                                code.push(address_labels.get(&label[..])
+                                          .unwrap().clone() as i32);
+                            }
+                            else
+                            {
+                                return Err(format!("Undefined label: {}", label));
+                            }
+                        },
+                    }
+                }
+            },
+            _ => {},
+        }
+    }
+
+    // Initialize variables
+    for _ in 0..address_vars.len()
+    {
+        code.push(0);
+    }
+    Ok(code)
 }
