@@ -3,6 +3,7 @@ name = "advent-2019"
 version = "0.1.0"
 authors = ["MetroWind <chris.corsair@gmail.com>"]
 edition = "2018"
+default-run = "advent-2019"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,3 +18,11 @@ path = "advent/meta.rs"
 [[bin]]
 name = "advent-2019"
 path = "main.rs"
+
+[[bin]]
+name = "assembler"
+path = "intcode/assembler.rs"
+
+[[bin]]
+name = "emulator"
+path = "intcode/emulator.rs"
