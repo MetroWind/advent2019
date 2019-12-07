@@ -12,13 +12,18 @@ enum ParserState
     End,
 }
 
+#[derive(Clone)]
 enum Argument
 {
     Position(String),
     Immediate(i32),
     Label(String),
+    // Internal use for “call”. It’s an address that the instruction
+    // writes to. Just the address number in position mode.
+    ImmediatePosition(i32),
 }
 
+#[derive(Clone)]
 enum StatementType
 {
     Label,
@@ -63,10 +68,12 @@ impl fmt::Display for Argument
             Argument::Position(s) => write!(f, "Position({})", s),
             Argument::Immediate(x) => write!(f, "Immediate({})", x),
             Argument::Label(s) => write!(f, "Label({})", s),
+            Argument::ImmediatePosition(x) => write!(f, "ImmediatePosition({})", x),
         }
     }
 }
 
+#[derive(Clone)]
 pub struct Statement
 {
     the_type: StatementType,
@@ -82,7 +89,21 @@ impl Statement
         match self.the_type
         {
             // This can get complicated later.
-            StatementType::Code => self.arguments.len() + 1,
+            StatementType::Code =>
+            {
+                if self.head == "call"
+                {
+                    3 * 4 + 3   // 3 adds and 1 jmpt
+                }
+                else if self.head == "rtn"
+                {
+                    2 * 4 + 3   // 2 adds and 1 jmpt
+                }
+                else
+                {
+                    self.arguments.len() + 1
+                }
+            },
             _ => 0,
         }
     }
@@ -96,7 +117,7 @@ impl Statement
             mode += match arg
             {
                 Argument::Immediate(_) | Argument::Label(_) => base * 1,
-                Argument::Position(_) => base * 0,
+                Argument::Position(_) | Argument::ImmediatePosition(_) => base * 0,
             };
             base *= 10;
         }
@@ -215,7 +236,7 @@ impl fmt::Debug for Statement
 
 fn parseLine(line: &str, address: usize) -> Result<Statement, String>
 {
-    let chars: Vec<char> = line.chars().chain(vec!['#']).collect();
+    let chars: Vec<char> = line.chars().chain(vec![';']).collect();
 
     let mut state = ParserState::Begin;
     let mut cursor: usize = 0;
@@ -236,7 +257,7 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
         {
             ParserState::Begin =>
             {
-                if c == '#'
+                if c == ';'
                 {
                     statement.the_type = StatementType::Empty;
                     state = ParserState::End;
@@ -268,7 +289,7 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
                     state = ParserState::NotAllowed;
                     statement.the_type = StatementType::Label
                 }
-                else if c == '#'
+                else if c == ';'
                 {
                     statement.head = word.iter().collect();
                     word.clear();
@@ -282,7 +303,7 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
             },
             ParserState::Arg =>
             {
-                if c == ',' || c == '#'
+                if c == ',' || c == ';'
                 {
                     if word.is_empty()
                     {
@@ -292,7 +313,7 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
                     statement.arguments.push(arg_str.parse()?);
                     word.clear();
 
-                    if c == '#'
+                    if c == ';'
                     {
                         state = ParserState::End;
                     }
@@ -308,7 +329,7 @@ fn parseLine(line: &str, address: usize) -> Result<Statement, String>
             }
             ParserState::NotAllowed =>
             {
-                if !(c.is_whitespace()) && c != '#'
+                if !(c.is_whitespace()) && c != ';'
                 {
                     return Err(String::from("Invalid statement"));
                 }
@@ -333,20 +354,142 @@ pub fn parse(source: &str) -> Result<Vec<Statement>, String>
     Ok(result)
 }
 
-pub fn assemble(statements: &Vec<Statement>) -> Result<Vec<i32>, String>
+pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
 {
     let mut code: Vec<i32> = vec![];
-    if statements.is_empty()
+    if statements_raw.is_empty()
     {
         return Ok(code);
     }
 
     let mut address_labels: HashMap<&str, usize> = HashMap::new();
     let mut address_vars: HashMap<&str, usize> = HashMap::new();
+    let last_statem = statements_raw.last().unwrap();
+    let code_size = last_statem.address + last_statem.len();
+    let stack_ptr_addr = code_size as i32;
+    let stack_size: usize = 10;
+    // The 1 is for the stack pointer.
+    let data_start: usize = code_size + stack_size + 1;
+
+    // First pass, expand function calls and returns.
+    let mut statements: Vec<Statement> = vec![];
+
+    for statement in statements_raw
+    {
+        if statement.head == "call"
+        {
+            // Find the correct place in stack and write it to stack pointer.
+            let stack_statem: Statement = Statement
+            {
+                the_type: StatementType::Code,
+                address: statement.address,
+                arguments: vec![Argument::ImmediatePosition(stack_ptr_addr),
+                                Argument::Immediate(1),
+                                Argument::ImmediatePosition(stack_ptr_addr)],
+                head: String::from("add"),
+            };
+
+            // The next command will write the return address to the
+            // correct place in stack, but it doesn’t known what that
+            // address is. Tell it.
+            let write_return_addr_statem: Statement = Statement
+            {
+                the_type: StatementType::Code,
+                address: statement.address + stack_statem.len(),
+                arguments: vec![Argument::ImmediatePosition(stack_ptr_addr),
+                                Argument::Immediate(0),
+                                Argument::ImmediatePosition(
+                                    (statement.address + stack_statem.len() + 4 + 3)
+                                        as i32)],
+                head: String::from("add"),
+            };
+
+            // Write the return address to the correct place in stack.
+            let return_addr_statem = Statement
+            {
+                the_type: StatementType::Code,
+                address: statement.address + stack_statem.len()
+                    + write_return_addr_statem.len(),
+                arguments: vec![Argument::Immediate(
+                    (statement.address + statement.len()) as i32),
+                                Argument::Immediate(0),
+                                // This one doesn’t matter, it’ll be
+                                // overwritten by the previous
+                                // instruction.
+                                Argument::ImmediatePosition(0)],
+                head: String::from("add"),
+            };
+
+            // Now we can jump to function.
+            let jmp_statem = Statement
+            {
+                the_type: StatementType::Code,
+                address: statement.address + stack_statem.len()
+                    + write_return_addr_statem.len() + return_addr_statem.len(),
+                arguments: vec![Argument::Immediate(1),
+                                statement.arguments[0].clone()],
+                head: String::from("jmpt"),
+            };
+
+            statements.push(stack_statem);
+            statements.push(write_return_addr_statem);
+            statements.push(return_addr_statem);
+            statements.push(jmp_statem);
+        }
+
+        else if statement.head == "rtn"
+        {
+            // Find the current stack head, and tell the jmpt command about it.
+            let return_addr_statem = Statement
+            {
+                the_type: StatementType::Code,
+                address: statement.address,
+                arguments: vec![Argument::ImmediatePosition(stack_ptr_addr),
+                                Argument::Immediate(0),
+                                Argument::ImmediatePosition(
+                                    (statement.address + 4 + 4+ 2) as i32)],
+                head: String::from("add"),
+            };
+
+            // Decrease stack head by 1.
+            let stack_ptr_update_statem = Statement
+            {
+                the_type: StatementType::Code,
+                address: statement.address + return_addr_statem.len(),
+                arguments: vec![Argument::ImmediatePosition(stack_ptr_addr),
+                                Argument::Immediate(-1),
+                                Argument::ImmediatePosition(stack_ptr_addr)],
+                head: String::from("add"),
+            };
+
+            let jmp_statem = Statement
+            {
+                the_type: StatementType::Code,
+                address: statement.address + return_addr_statem.len()
+                    + stack_ptr_update_statem.len(),
+                arguments: vec![Argument::Immediate(1),
+                                // This one doesn’t matter, it’ll be
+                                // overwritten by the previous
+                                // previous instruction.
+                                Argument::ImmediatePosition(0)],
+                head: String::from("jmpt"),
+            };
+
+            statements.push(return_addr_statem);
+            statements.push(stack_ptr_update_statem);
+            statements.push(jmp_statem);
+        }
+
+        else
+        {
+            statements.push(statement.clone());
+        }
+    }
 
     // First pass, find all the lables.
-    for statement in statements
+    for statement in &statements
     {
+        // println!("{}", statement);
         match statement.the_type
         {
             StatementType::Label =>
@@ -361,11 +504,8 @@ pub fn assemble(statements: &Vec<Statement>) -> Result<Vec<i32>, String>
         }
     }
 
-    let last_statem = statements.last().unwrap();
-    let code_size = last_statem.address + last_statem.len();
-
     // Second pass, fill in addresses.
-    for statement in statements
+    for statement in &statements
     {
         match statement.the_type
         {
@@ -388,7 +528,7 @@ pub fn assemble(statements: &Vec<Statement>) -> Result<Vec<i32>, String>
                             }
                             else
                             {
-                                let addr = address_vars.len() + code_size;
+                                let addr = address_vars.len() + data_start;
                                 address_vars.insert(&var[..], addr);
                                 code.push(addr as i32);
                             }
@@ -405,11 +545,23 @@ pub fn assemble(statements: &Vec<Statement>) -> Result<Vec<i32>, String>
                                 return Err(format!("Undefined label: {}", label));
                             }
                         },
+                        Argument::ImmediatePosition(x) =>
+                        {
+                            code.push(x.clone());
+                        },
                     }
                 }
             },
             _ => {},
         }
+    }
+
+    // Stack pointer
+    code.push((code_size + 1) as i32);
+
+    for _ in 0..stack_size
+    {
+        code.push(0);
     }
 
     // Initialize variables

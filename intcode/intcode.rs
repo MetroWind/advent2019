@@ -146,6 +146,8 @@ impl IntCodeComputer
             {
                 break;
             }
+
+            // println!("{:?}", self.mem);
         }
     }
 

@@ -48,7 +48,7 @@ inssembly that does integer division:
 
 [source]
 ----
-# Integer division
+; Integer division
 
 input arg1
 input arg2
@@ -61,7 +61,7 @@ eq test, arg1, equal_result
 jmpt equal_result, :output
 
 less arg1, test, less_result
-jmpt less_result, :minus1       # We overshot, need to minus 1.
+jmpt less_result, :minus1       ; We overshot, need to minus 1.
 
 jmpt 1, :addition
 
@@ -74,3 +74,31 @@ minus1:
 add -1, result, result
 jmpt 1, :output
 ----
+
+Besides the instruction provided by Intcode, inssembly also support
+functions. Here’s an example that demonstrate function calls
+
+[source]
+----
+    add 50, 50, add1_arg1
+    add 1, 2, add1_arg2
+    call :the_add
+    output add1_result
+    halt
+the_add:
+    add add1_arg1, add1_arg2, add2_arg1
+    call :add2
+    add add2_result, 0, add1_result
+    rtn
+
+add2:
+    add add2_arg1, 2, add2_result
+    rtn
+----
+
+Basically it defines a function `the_add`, which adds its 2 arguments
+and apply another function `add2` on it. The function `add2` just adds
+2 to its only argument. Function calls are implemented by
+pre-allocating a stack after the “text segment”. The size of the stack
+is currently hard-coded to be 10. The “arguments” and “return values”
+are all “static”.
