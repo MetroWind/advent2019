@@ -371,6 +371,8 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
     // The 1 is for the stack pointer.
     let data_start: usize = code_size + stack_size + 1;
 
+    let mut has_function = false;
+
     // First pass, expand function calls and returns.
     let mut statements: Vec<Statement> = vec![];
 
@@ -378,6 +380,7 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
     {
         if statement.head == "call"
         {
+            has_function = true;
             // Find the correct place in stack and write it to stack pointer.
             let stack_statem: Statement = Statement
             {
@@ -556,12 +559,15 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
         }
     }
 
-    // Stack pointer
-    code.push((code_size + 1) as i32);
-
-    for _ in 0..stack_size
+    if has_function
     {
-        code.push(0);
+        // Stack pointer
+        code.push((code_size + 1) as i32);
+
+        for _ in 0..stack_size
+        {
+            code.push(0);
+        }
     }
 
     // Initialize variables
