@@ -88,6 +88,9 @@ pub struct IntCodeComputer
     pub input: Vec<i32>,
     cursor_input: usize,
     pub output: Vec<i32>,
+
+    one_input: i32,
+    one_output: i32,
 }
 
 impl IntCodeComputer
@@ -102,6 +105,9 @@ impl IntCodeComputer
             input: vec![],
             cursor_input: 0,
             output: vec![],
+
+            one_input: 0,
+            one_output: 0,
         }
     }
 
@@ -114,6 +120,32 @@ impl IntCodeComputer
         self.input.clear();
         self.cursor_input = 0;
         self.output.clear();
+
+        self.one_input = 0;
+        self.one_output = 0;
+    }
+
+    fn getNextOpCode(&mut self) -> OpCode
+    {
+        OpCode::fromInt(self.mem[self.cursor])
+            .expect(&format!("Invalid opcode {}", self.mem[self.cursor])[..])
+    }
+
+    fn step(&mut self, code: &OpCode)
+    {
+        match code.code
+        {
+            99 => { self.evalHalt(code); },
+            1 => { self.evalAdd(code); },
+            2 => { self.evalMult(code); },
+            3 => { self.evalInput(code); },
+            4 => { self.evalOutput(code); },
+            5 => { self.evalJmpTrue(code); },
+            6 => { self.evalJmpFalse(code); },
+            7 => { self.evalLess(code); },
+            8 => { self.evalEqual(code); },
+            _ => unreachable!(),
+        };
     }
 
     pub fn eval(&mut self, codes: &Vec<i32>, input: Option<&Vec<i32>>)
@@ -126,21 +158,20 @@ impl IntCodeComputer
 
         loop
         {
-            let code: OpCode = OpCode::fromInt(self.mem[self.cursor])
-                .expect(&format!("Invalid opcode {}", self.mem[self.cursor])[..]);
-            match code.code
+            let code: OpCode = self.getNextOpCode();
+
+            if code.code == 3    // input
             {
-                99 => { self.evalHalt(&code); },
-                1 => { self.evalAdd(&code); },
-                2 => { self.evalMult(&code); },
-                3 => { self.evalInput(&code); },
-                4 => { self.evalOutput(&code); },
-                5 => { self.evalJmpTrue(&code); },
-                6 => { self.evalJmpFalse(&code); },
-                7 => { self.evalLess(&code); },
-                8 => { self.evalEqual(&code); },
-                _ => unreachable!(),
-            };
+                self.one_input = self.input[self.cursor_input];
+                self.cursor_input += 1;
+            }
+
+            self.step(&code);
+
+            if code.code == 4    // Output
+            {
+                self.output.push(self.one_output);
+            }
 
             if self.halt
             {
@@ -148,6 +179,59 @@ impl IntCodeComputer
             }
 
             // println!("{:?}", self.mem);
+        }
+    }
+
+    // As soon as the computer hits the next input, do the input and
+    // pause there. Doesn’t write to `self.input’. Also return when
+    // halted.
+    #[allow(dead_code)]
+    pub fn consumeSingleInput(&mut self, input: i32)
+    {
+        self.one_input = input;
+        loop
+        {
+            let code: OpCode = self.getNextOpCode();
+            self.step(&code);
+
+            if code.code == 3    // Input
+            {
+                return;
+            }
+
+            if self.halt
+            {
+                return;
+            }
+        }
+    }
+
+    // Work in pipe mode. Ever time this function calls, it takes 1
+    // input, runs the computer until there’s an output, and returns
+    // that output. The computer then pause at the current state. This
+    // function can be then called to process further inputs. If the
+    // computer halts in the process, returns None.
+    //
+    // The code is directly taken from memory.
+    #[allow(dead_code)]
+    pub fn pipe(&mut self, input: i32) -> Option<i32>
+    {
+        self.one_input = input;
+
+        loop
+        {
+            let code: OpCode = self.getNextOpCode();
+
+            self.step(&code);
+            if code.code == 4    // Output
+            {
+                return Some(self.one_output);
+            }
+
+            if self.halt
+            {
+                return None;
+            }
         }
     }
 
@@ -197,25 +281,13 @@ impl IntCodeComputer
     fn evalInput(&mut self, code: &OpCode)
     {
         let result_addr = self.mem[self.cursor+1] as usize;
-        self.mem[result_addr] = self.input[self.cursor_input];
-        self.cursor_input += 1;
+        self.mem[result_addr] = self.one_input;
         self.skip(code);
     }
 
     fn evalOutput(&mut self, code: &OpCode)
     {
-        match code.arg_modes[0]
-        {
-            ArgMode::Position =>
-            {
-                let addr = self.mem[self.cursor + 1] as usize;
-                self.output.push(self.mem[addr]);
-            },
-            ArgMode::Immediate =>
-            {
-                self.output.push(self.mem[self.cursor + 1]);
-            },
-        };
+        self.one_output = self.getArg(code, 0);
         self.skip(code);
     }
 
@@ -374,4 +446,18 @@ fn testJump()
     computer.eval(&vec![3,3,1105,-1,9,1101,0,0,12,4,12,99,1],
                   Some(&vec![1234]));
     assert_eq!(computer.output, vec![1]);
+}
+
+#[test]
+fn testPipe()
+{
+    let mut computer = IntCodeComputer::new();
+    computer.mem = vec![3,20,1001,20,1,21,4,21,99,10,0,0,0,0,0,0,0,0,0,0,0,0];
+    assert_eq!(computer.pipe(10).unwrap(), 11);
+
+    computer.reset();
+    computer.mem = vec![3,28,1001,28,1,29,4,29,3,28,1001,28,2,29,4,29,99,18,0,0,0,0,0,0,0,0,0,0,0,0];
+    assert_eq!(computer.pipe(10).unwrap(), 11);
+    assert_eq!(computer.pipe(11).unwrap(), 13);
+    assert!(computer.pipe(0).is_none());
 }

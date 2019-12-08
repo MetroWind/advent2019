@@ -389,9 +389,9 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
                 head: String::from("add"),
             };
 
-            // The next command will write the return address to the
-            // correct place in stack, but it doesn’t known what that
-            // address is. Tell it.
+            // The next command after the following will write the
+            // return address to the correct place in stack, but it
+            // doesn’t known what that address is. Tell it.
             let write_return_addr_statem: Statement = Statement
             {
                 the_type: StatementType::Code,
