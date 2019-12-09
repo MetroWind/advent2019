@@ -43,7 +43,7 @@ struct OpCode
 {
     arg_count: u8,
     code: u8,
-    arg_modes: Vec<ArgMode>,
+    arg_modes: [ArgMode; 3],
 }
 
 impl OpCode
@@ -68,14 +68,24 @@ impl OpCode
             _ => { return Err(()); },
         };
 
-        let modes: Vec<ArgMode> = (0..arg_count).map(
-            |_|
+        let mut modes: [ArgMode; 3] = [ArgMode::Position,
+                                       ArgMode::Position,
+                                       ArgMode::Position];
+
+        for i in 0..modes.len()
+        {
+            modes[i] = if let Ok(some_mode) =
+                ArgMode::fromDigit((code_modes % 10) as u8)
             {
-                let mode = ArgMode::fromDigit((code_modes % 10) as u8)
-                    .expect(&format!("Invalid arg mode in code {}", code)[..]);
-                code_modes /= 10;
-                mode
-            }).collect();
+                some_mode
+            }
+            else
+            {
+                panic!("Invalid arg mode in code {}", code);
+            };
+            code_modes /= 10;
+        };
+
         Ok(OpCode
            {
                arg_count: arg_count,
@@ -143,8 +153,14 @@ impl IntCodeComputer
 
     fn getNextOpCode(&mut self) -> OpCode
     {
-        OpCode::fromInt(self.mem[self.cursor])
-            .expect(&format!("Invalid opcode {}", self.mem[self.cursor])[..])
+        if let Ok(code) = OpCode::fromInt(self.mem[self.cursor])
+        {
+            code
+        }
+        else
+        {
+            panic!("Invalid opcode {}", self.mem[self.cursor]);
+        }
     }
 
     fn step(&mut self, code: &OpCode)
