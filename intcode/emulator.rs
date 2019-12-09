@@ -40,10 +40,10 @@ fn main() -> Result<(), String>
     io::stdin().lock().read_to_string(&mut input_raw).expect("Failed to read input");
     let mut computer = intcode::IntCodeComputer::new();
 
-    computer.input = input_raw.trim().lines().map(
+    let input: Vec<intcode::ValueType> = input_raw.trim().lines().map(
         |line|
         {
-            if let Ok(x) = line.parse::<i32>()
+            if let Ok(x) = line.parse::<intcode::ValueType>()
             {
                 x
             }
@@ -53,9 +53,8 @@ fn main() -> Result<(), String>
             }
         }).collect();
 
-    let codes: Vec<i32> = intcode::parse(&source[..]);
-
-    computer.eval(&codes, None);
+    computer.loadCode(&(intcode::parse(&source[..])));
+    computer.eval(if input.is_empty() {None} else {Some(&input)});
 
     for x in computer.output
     {

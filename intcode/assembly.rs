@@ -3,6 +3,8 @@ use std::str::FromStr;
 use std::fmt;
 use std::collections::HashMap;
 
+use crate::intcode;
+
 enum ParserState
 {
     Begin,
@@ -16,11 +18,11 @@ enum ParserState
 enum Argument
 {
     Position(String),
-    Immediate(i32),
+    Immediate(intcode::ValueType),
     Label(String),
     // Internal use for “call”. It’s an address that the instruction
     // writes to. Just the address number in position mode.
-    ImmediatePosition(i32),
+    ImmediatePosition(intcode::ValueType),
 }
 
 #[derive(Clone)]
@@ -43,7 +45,7 @@ impl FromStr for Argument
             return Err(format!("Invalid argument: {}", s));
         }
 
-        if let Ok(num) = s.parse::<i32>()
+        if let Ok(num) = s.parse::<intcode::ValueType>()
         {
             Ok(Argument::Immediate(num))
         }
@@ -108,10 +110,10 @@ impl Statement
         }
     }
 
-    fn mode(&self) -> i32
+    fn mode(&self) -> intcode::ValueType
     {
-        let mut base: i32 = 100;
-        let mut mode: i32 = 0;
+        let mut base: intcode::ValueType = 100;
+        let mut mode: intcode::ValueType = 0;
         for arg in &self.arguments
         {
             mode += match arg
@@ -124,11 +126,11 @@ impl Statement
         mode
     }
 
-    pub fn opCode(&self) -> Result<i32, String>
+    pub fn opCode(&self) -> Result<intcode::ValueType, String>
     {
         let mode = self.mode();
 
-        let code: i32 = mode + match &(self.head)[..]
+        let code: intcode::ValueType = mode + match &(self.head)[..]
         {
             "add" =>
             {
@@ -354,9 +356,9 @@ pub fn parse(source: &str) -> Result<Vec<Statement>, String>
     Ok(result)
 }
 
-pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
+pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<intcode::ValueType>, String>
 {
-    let mut code: Vec<i32> = vec![];
+    let mut code: Vec<intcode::ValueType> = vec![];
     if statements_raw.is_empty()
     {
         return Ok(code);
@@ -366,7 +368,7 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
     let mut address_vars: HashMap<&str, usize> = HashMap::new();
     let last_statem = statements_raw.last().unwrap();
     let code_size = last_statem.address + last_statem.len();
-    let stack_ptr_addr = code_size as i32;
+    let stack_ptr_addr = code_size as intcode::ValueType;
     let stack_size: usize = 10;
     // The 1 is for the stack pointer.
     let data_start: usize = code_size + stack_size + 1;
@@ -403,7 +405,7 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
                                 Argument::Immediate(0),
                                 Argument::ImmediatePosition(
                                     (statement.address + stack_statem.len() + 4 + 3)
-                                        as i32)],
+                                        as intcode::ValueType)],
                 head: String::from("add"),
             };
 
@@ -414,7 +416,7 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
                 address: statement.address + stack_statem.len()
                     + write_return_addr_statem.len(),
                 arguments: vec![Argument::Immediate(
-                    (statement.address + statement.len()) as i32),
+                    (statement.address + statement.len()) as intcode::ValueType),
                                 Argument::Immediate(0),
                                 // This one doesn’t matter, it’ll be
                                 // overwritten by the previous
@@ -450,7 +452,7 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
                 arguments: vec![Argument::ImmediatePosition(stack_ptr_addr),
                                 Argument::Immediate(0),
                                 Argument::ImmediatePosition(
-                                    (statement.address + 4 + 4+ 2) as i32)],
+                                    (statement.address + 4 + 4+ 2) as intcode::ValueType)],
                 head: String::from("add"),
             };
 
@@ -527,13 +529,13 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
                         {
                             if address_vars.contains_key(&var[..])
                             {
-                                code.push(address_vars.get(&var[..]).unwrap().clone() as i32);
+                                code.push(address_vars.get(&var[..]).unwrap().clone() as intcode::ValueType);
                             }
                             else
                             {
                                 let addr = address_vars.len() + data_start;
                                 address_vars.insert(&var[..], addr);
-                                code.push(addr as i32);
+                                code.push(addr as intcode::ValueType);
                             }
                         },
                         Argument::Label(label) =>
@@ -541,7 +543,7 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
                             if address_labels.contains_key(&label[..])
                             {
                                 code.push(address_labels.get(&label[..])
-                                          .unwrap().clone() as i32);
+                                          .unwrap().clone() as intcode::ValueType);
                             }
                             else
                             {
@@ -562,7 +564,7 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<i32>, String>
     if has_function
     {
         // Stack pointer
-        code.push((code_size + 1) as i32);
+        code.push((code_size + 1) as intcode::ValueType);
 
         for _ in 0..stack_size
         {

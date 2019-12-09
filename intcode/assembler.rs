@@ -4,6 +4,7 @@ use std::io::{self, prelude::*};
 use std::vec::Vec;
 
 mod assembly;
+mod intcode;
 
 fn main() -> Result<(), String>
 {
