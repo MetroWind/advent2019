@@ -11,6 +11,8 @@ mod intcode
     pub mod intcode;
 }
 
+mod ratio;
+
 extern crate meta;
 
 meta::importAdvent!();
