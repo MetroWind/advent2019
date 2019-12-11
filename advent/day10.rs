@@ -1,6 +1,8 @@
 use std::vec::Vec;
 use std::collections::HashSet;
 use std::cmp::Ordering;
+use std::fs::File;
+use std::io::Write;
 
 use crate::ratio::Ratio;
 
@@ -23,11 +25,21 @@ use crate::ratio::Ratio;
 //     }
 // }
 
-fn parse(input: &str) -> HashSet<(i32, i32)>
+struct SpaceInfo
+{
+    width: i32,
+    height: i32,
+    asteroids: HashSet<(i32, i32)>,
+}
+
+fn parse(input: &str) -> SpaceInfo
 {
     let mut result = HashSet::new();
-    let mut row = 0;
-    let mut col = 0;
+    let mut row: i32 = 0;
+    let mut col: i32 = 0;
+
+    let mut width = 0;
+
     for line in input.lines()
     {
         for byte in line.bytes()
@@ -39,9 +51,16 @@ fn parse(input: &str) -> HashSet<(i32, i32)>
             col += 1;
         }
         row += 1;
+        width = col;
         col = 0;
     }
-    result
+
+    SpaceInfo
+    {
+        width: width,
+        height: row,
+        asteroids: result,
+    }
 }
 
 fn dist(a: &(i32, i32), b: &(i32, i32)) -> i32
@@ -220,16 +239,16 @@ where F: FnMut(&(i32, i32)) -> R
         {
             if asteroid.1 > from.1
             {
-                up.push(asteroid.clone());
+                down.push(asteroid.clone());
             }
             else
             {
-                down.push(asteroid.clone());
+                up.push(asteroid.clone());
             }
         }
         else if asteroid.1 == from.1
         {
-            if asteroid.0 > from.1
+            if asteroid.0 > from.0
             {
                 right.push(asteroid.clone());
             }
@@ -284,10 +303,10 @@ where F: FnMut(&(i32, i32)) -> R
     down.sort_unstable_by(|a, b| { dist(a, from).cmp(&dist(b, from)).reverse() });
     left.sort_unstable_by(|a, b| { dist(a, from).cmp(&dist(b, from)).reverse() });
 
-    block1.sort_unstable_by(|a, b| key2(from, &a.unwrap(), &b.unwrap()).reverse());
-    block2.sort_unstable_by(|a, b| key1(from, &a.unwrap(), &b.unwrap()).reverse());
-    block3.sort_unstable_by(|a, b| key2(from, &a.unwrap(), &b.unwrap()).reverse());
-    block4.sort_unstable_by(|a, b| key1(from, &a.unwrap(), &b.unwrap()).reverse());
+    block1.sort_unstable_by(|a, b| key1(from, &a.unwrap(), &b.unwrap()));
+    block2.sort_unstable_by(|a, b| key2(from, &a.unwrap(), &b.unwrap()));
+    block3.sort_unstable_by(|a, b| key1(from, &a.unwrap(), &b.unwrap()));
+    block4.sort_unstable_by(|a, b| key2(from, &a.unwrap(), &b.unwrap()));
 
     loop
     {
@@ -299,9 +318,9 @@ where F: FnMut(&(i32, i32)) -> R
             did_stuff = true;
         }
 
-        if !block1.is_empty()
+        if !block4.is_empty()
         {
-            block1 = shootBlock(from, block1, &mut do_what);
+            block4 = shootBlock(from, block4, &mut do_what);
             did_stuff = true;
         }
 
@@ -311,9 +330,9 @@ where F: FnMut(&(i32, i32)) -> R
             did_stuff = true;
         }
 
-        if !block4.is_empty()
+        if !block1.is_empty()
         {
-            block4 = shootBlock(from, block4, &mut do_what);
+            block1 = shootBlock(from, block1, &mut do_what);
             did_stuff = true;
         }
 
@@ -323,9 +342,9 @@ where F: FnMut(&(i32, i32)) -> R
             did_stuff = true;
         }
 
-        if !block3.is_empty()
+        if !block2.is_empty()
         {
-            block3 = shootBlock(from, block3, &mut do_what);
+            block2 = shootBlock(from, block2, &mut do_what);
             did_stuff = true;
         }
 
@@ -335,9 +354,9 @@ where F: FnMut(&(i32, i32)) -> R
             did_stuff = true;
         }
 
-        if !block2.is_empty()
+        if !block3.is_empty()
         {
-            block2 = shootBlock(from, block2, &mut do_what);
+            block3 = shootBlock(from, block3, &mut do_what);
             did_stuff = true;
         }
 
@@ -350,20 +369,48 @@ where F: FnMut(&(i32, i32)) -> R
 
 pub fn part1(input: &str) -> i32
 {
-    let asteroids = parse(input);
+    let asteroids = parse(input).asteroids;
     let (_, max_count) = findLocation(&asteroids);
     max_count
 }
 
 pub fn part2(input: &str) -> i32
 {
-    let asteroids = parse(input);
-    let total = asteroids.len();
-    let (from, _) = findLocation(&asteroids);
+    let svg_cell_size: i32 = 32;
+    let svg_padding: i32 = 4;
+    let space = parse(input);
+    let total = space.asteroids.len();
+    let (from, _) = findLocation(&space.asteroids);
+
+    let svg_fg = "#ffffff";
+    let svg_bg = "#2f3542";
+
+    let mut svgfile = File::create("10-2.svg").expect("Failed to open SVG file");
+    writeln!(svgfile, r#"<svg viewBox="{} {} {} {}" xmlns="http://www.w3.org/2000/svg">"#,
+             -svg_padding, -svg_padding,
+             space.width * svg_cell_size + 2 * svg_padding,
+             space.height * svg_cell_size + 2 * svg_padding);
+    writeln!(svgfile, r##"<rect x="{}" y="{}" width="{}" height="{}" fill="{}" />"##,
+             -svg_padding, -svg_padding,
+             space.width * svg_cell_size + 2 * svg_padding,
+             space.height * svg_cell_size + 2 * svg_padding,
+             svg_bg);
+    writeln!(svgfile, r##"<rect x="{x}" y="{y}" width="{size}" height="{size}" fill="#2ed573" stroke="none" />"##,
+             x=from.0 * svg_cell_size, y=from.1 * svg_cell_size, size=svg_cell_size);
+
+    for asteroid in &space.asteroids
+    {
+        if asteroid != &from
+        {
+            writeln!(svgfile, r##"<rect x="{x}" y="{y}" width="{size}" height="{size}" fill="#ff4757" stroke="none" />"##,
+                     x=asteroid.0 * svg_cell_size, y=asteroid.1 * svg_cell_size,
+                     size=svg_cell_size);
+        }
+    }
 
     let mut the200: (i32, i32) = (0, 0);
     let mut count = 0;
-    shoot(&from, &asteroids,
+    shoot(&from, &space.asteroids,
           |target|
           {
               count += 1;
@@ -371,7 +418,32 @@ pub fn part2(input: &str) -> i32
               {
                   the200 = target.clone();
               }
+
+              writeln!(svgfile, r#"<text x="{x}" y="{y}" text-anchor="middle" dominant-baseline="middle" fill="{color}" font-family="IBM Plex Mono" font-weight="bold" font-size="13">{text}</text>"#,
+                       x=target.0 * svg_cell_size + svg_cell_size / 2,
+                       y=target.1 * svg_cell_size + svg_cell_size / 2,
+                       color=svg_fg,
+                       text=count);
+
           });
+
+    writeln!(svgfile, r#"<rect x="0" y="0" width="{}" height="{}" stroke="{}" fill="none" stroke-width="2" />"#,
+             space.width * svg_cell_size, space.height * svg_cell_size, svg_fg);
+
+    for row in 1..space.height
+    {
+        writeln!(svgfile, r#"<line x1="0" x2="{x}" y1="{y}" y2="{y}"
+stroke="{color}" stroke-width="2"/>"#,
+                 x=space.width * svg_cell_size, y=row * svg_cell_size, color=svg_fg);
+    }
+
+    for col in 1..space.width
+    {
+        writeln!(svgfile, r#"<line x1="{x}" x2="{x}" y1="0" y2="{y}" stroke="{color}" stroke-width="2"/>"#,
+                 x=col * svg_cell_size, y=space.height * svg_cell_size, color=svg_fg);
+    }
+
+    writeln!(svgfile, "</svg>");
     the200.0 * 100 + the200.1
 }
 
