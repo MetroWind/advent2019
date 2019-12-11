@@ -182,7 +182,7 @@ where F: FnMut(&(i32, i32)) -> R
 {
     let mut size = block.len();
     let mut shot_slope: HashSet<Ratio<i32>> = HashSet::new();
-    for mut target_maybe in &mut block
+    for target_maybe in &mut block
     {
         if target_maybe.is_none()
         {
@@ -374,12 +374,12 @@ pub fn part1(input: &str) -> i32
     max_count
 }
 
+#[allow(unused_must_use)]
 pub fn part2(input: &str) -> i32
 {
     let svg_cell_size: i32 = 32;
     let svg_padding: i32 = 4;
     let space = parse(input);
-    let total = space.asteroids.len();
     let (from, _) = findLocation(&space.asteroids);
 
     let svg_fg = "#ffffff";
@@ -518,15 +518,15 @@ fn testPart1()
 #[test]
 fn testPart2()
 {
-    let asteroids = parse(".#..#
+    let space = parse(".#..#
 .....
 #####
 ....#
 ...##");
-    let total = asteroids.len();
-    let (from, _) = findLocation(&asteroids);
+    let total = space.asteroids.len();
+    let (from, _) = findLocation(&space.asteroids);
 
     let mut count: usize = 0;
-    shoot(&from, &asteroids, |_| { count += 1; });
+    shoot(&from, &space.asteroids, |_| { count += 1; });
     assert_eq!(count, total - 1);
 }
