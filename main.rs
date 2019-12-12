@@ -6,6 +6,7 @@ use std::env;
 use std::process::exit;
 
 mod wires;
+mod vector;
 mod intcode
 {
     pub mod intcode;
