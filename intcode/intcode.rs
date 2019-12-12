@@ -143,6 +143,11 @@ impl IntCodeComputer
         self.one_output = 0;
     }
 
+    pub fn halted(&self) -> bool
+    {
+        self.halt
+    }
+
     pub fn loadCode(&mut self, code: &Vec<ValueType>)
     {
         for i in 0..code.len()
@@ -246,9 +251,12 @@ impl IntCodeComputer
     //
     // The code is directly taken from memory.
     #[allow(dead_code)]
-    pub fn pipe(&mut self, input: ValueType) -> Option<ValueType>
+    pub fn pipe(&mut self, input: Option<ValueType>) -> Option<ValueType>
     {
-        self.one_input = input;
+        if let Some(x) = input
+        {
+            self.one_input = x;
+        }
 
         loop
         {
@@ -510,14 +518,14 @@ fn testPipe()
 {
     let mut computer = IntCodeComputer::new();
     computer.loadCode(&vec![3,20,1001,20,1,21,4,21,99,10,0,0,0,0,0,0,0,0,0,0,0,0]);
-    assert_eq!(computer.pipe(10).unwrap(), 11);
+    assert_eq!(computer.pipe(Some(10)).unwrap(), 11);
 
     computer.reset();
     computer.loadCode(&vec![3,28,1001,28,1,29,4,29,3,28,1001,28,2,29,4,29,99,
                            18,0,0,0,0,0,0,0,0,0,0,0,0]);
-    assert_eq!(computer.pipe(10).unwrap(), 11);
-    assert_eq!(computer.pipe(11).unwrap(), 13);
-    assert!(computer.pipe(0).is_none());
+    assert_eq!(computer.pipe(Some(10)).unwrap(), 11);
+    assert_eq!(computer.pipe(Some(11)).unwrap(), 13);
+    assert!(computer.pipe(Some(0)).is_none());
 }
 
 #[test]

@@ -70,7 +70,7 @@ impl Amplifier
 
     pub fn run(&mut self)
     {
-        if let Some(output) = self.core.pipe(self.input)
+        if let Some(output) = self.core.pipe(Some(self.input))
         {
             self.output = output;
         }
