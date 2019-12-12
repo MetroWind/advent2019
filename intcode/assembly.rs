@@ -565,17 +565,21 @@ pub fn assemble(statements_raw: &Vec<Statement>) -> Result<Vec<intcode::ValueTyp
     {
         // Stack pointer
         code.push((code_size + 1) as intcode::ValueType);
-
-        for _ in 0..stack_size
-        {
-            code.push(0);
-        }
     }
 
-    // Initialize variables
-    for _ in 0..address_vars.len()
-    {
-        code.push(0);
-    }
+    // We don’t need to pre-allocate the stack and variables anymore,
+    // because now the whole RAM is pre-allocated.
+
+    //     for _ in 0..stack_size
+    //     {
+    //         code.push(0);
+    //     }
+    // }
+
+    // // Initialize variables
+    // for _ in 0..address_vars.len()
+    // {
+    //     code.push(0);
+    // }
     Ok(code)
 }

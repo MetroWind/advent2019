@@ -1,0 +1,53 @@
+;; -*- mode: asm; -*-
+
+    add 150, 0, layer_size
+    add 100, 0, layer_count
+    add 0, 0, result
+    mult layer_size, layer_count, target_pixel_count
+    call :readImage
+    output result
+    halt
+
+readLayer:
+    add 0, 0, pixel_count
+    add 0, 0, zero_count
+    add 0, 0, one_count
+    add 0, 0, two_count
+read_pixel:
+    less pixel_count, layer_size, need_pixel
+    jmpf need_pixel, :read_layer_return
+    input pixel
+    add pixel_count, 1, pixel_count
+    jmpt pixel, :onep
+    ;; Pixel is zero.
+    add zero_count, 1, zero_count
+    jmpt 1, :read_pixel
+onep:
+    eq pixel, 1, is_one
+    jmpf is_one, :twop
+    add 1, one_count, one_count
+    jmpt 1, :read_pixel
+twop:
+    eq pixel, 2, is_two
+    jmpf is_two, :read_pixel
+    add 1, two_count, two_count
+    jmpt 1, :read_pixel
+read_layer_return:
+    rtn
+
+readImage:
+    add 0, 0, total_pixel_count
+    ;; Set zero count to max possible
+    add layer_size, 0, zero_count_min
+read_layer:
+    less total_pixel_count, target_pixel_count, need_layer
+    jmpf need_layer, :read_image_return
+    call :readLayer
+    add total_pixel_count, layer_size, total_pixel_count
+    less zero_count, zero_count_min, is_less
+    jmpf is_less, :read_layer
+    add zero_count, 0, zero_count_min
+    mult one_count, two_count, result
+    jmpt 1, :read_layer
+read_image_return:
+    rtn
