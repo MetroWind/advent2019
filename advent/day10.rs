@@ -68,9 +68,9 @@ fn dist(a: &(i32, i32), b: &(i32, i32)) -> i32
     (a.0 - b.0).abs() + (a.1 - b.1).abs()
 }
 
-fn calcSlope(from: &(i32, i32), to: &(i32, i32)) -> Result<Ratio<i32>, String>
+fn calcSlope(from: &(i32, i32), to: &(i32, i32)) -> Result<Ratio<u32>, String>
 {
-    Ratio::from((to.1 - from.1).abs(), (to.0 - from.0).abs())
+    Ratio::from((to.1 - from.1).abs() as u32, (to.0 - from.0).abs() as u32)
 }
 
 fn findLocation(asteroids: &HashSet<(i32, i32)>) -> ((i32, i32), i32)
@@ -181,7 +181,7 @@ fn shootBlock<F, R>(from: &(i32, i32), mut block: Vec<Option<(i32, i32)>>, do_wh
 where F: FnMut(&(i32, i32)) -> R
 {
     let mut size = block.len();
-    let mut shot_slope: HashSet<Ratio<i32>> = HashSet::new();
+    let mut shot_slope: HashSet<Ratio<u32>> = HashSet::new();
     for target_maybe in &mut block
     {
         if target_maybe.is_none()
