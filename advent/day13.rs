@@ -1,7 +1,11 @@
 use std::stringify;
+use std::string::String;
 use std::fmt;
+use std::fmt::Write as FmtWrite;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
 
 use crate::intcode::intcode;
 
@@ -61,6 +65,52 @@ makeIntEnum!
     derive(Copy, Clone, PartialEq)
 }
 
+fn drawField(field: &HashMap<(intcode::ValueType, intcode::ValueType), TileType>) -> String
+{
+    let mut svg = String::new();
+    let tile_size = 16;
+    writeln!(svg, r#"<svg xmlns="http://www.w3.org/2000/svg">"#).expect("Failed to write SVG.");
+    for (loc, tile) in field
+    {
+        match tile
+        {
+            TileType::Wall =>
+            {
+                writeln!(svg, r#"<rect x="{x}" y="{y}" width="{size}" height="{size}" fill="{color}" stroke="none" />"#,
+                         x=loc.0 * tile_size, y=loc.1 * tile_size, size=tile_size,
+                         color="grey").expect("Failed to write SVG.");
+            },
+
+            TileType::Block =>
+            {
+                writeln!(svg, r#"<rect x="{x}" y="{y}" width="{size}" height="{size}" fill="{color}" stroke="none" />"#,
+                         x=loc.0 * tile_size, y=loc.1 * tile_size,
+                         size=tile_size, color="blue").expect("Failed to write SVG.");
+            },
+
+            TileType::Ball =>
+            {
+                writeln!(svg, r#"<circle cx="{x}" cy="{y}" r="{size}" fill="{color}" stroke="none" />"#,
+                         x=loc.0 * tile_size + tile_size / 2,
+                         y=loc.1 * tile_size + tile_size / 2,
+                         size=tile_size / 2, color="red").expect("Failed to write SVG.");
+            },
+
+            TileType::Paddle =>
+            {
+                writeln!(svg, r#"<rect x="{x}" y="{y}" width="{size}" height="{size}" fill="{color}" stroke="none" />"#,
+                         x=loc.0 * tile_size, y=loc.1 * tile_size, size=tile_size, color="black")
+                    .expect("Failed to write SVG.");
+            },
+
+            TileType::Empty => {},
+        }
+    }
+
+    writeln!(svg, "</svg>").expect("Failed to write SVG.");
+    svg
+}
+
 fn runGame(code: &Vec<intcode::ValueType>) -> HashMap<(intcode::ValueType, intcode::ValueType), TileType>
 {
     let mut computer = intcode::IntCodeComputer::new();
@@ -93,6 +143,7 @@ fn runGameWithScore(code: &Vec<intcode::ValueType>) -> intcode::ValueType
     let mut pad_x: intcode::ValueType = -1;
     let mut score = 0;
     let mut input: Option<intcode::ValueType> = None;
+    let mut frame = 0;
     loop
     {
         let x = if let Some(output) = computer.pipe(input)
@@ -123,6 +174,10 @@ fn runGameWithScore(code: &Vec<intcode::ValueType>) -> intcode::ValueType
             else if tile == TileType::Ball
             {
                 ball_x = x;
+                let mut output = File::create(format!("frames/{:05}.svg", frame))
+                    .unwrap();
+                write!(output, "{}", drawField(&field)).expect("Failed to write SVG.");
+                frame += 1;
             }
 
             if pad_x != -1 && ball_x != -1
