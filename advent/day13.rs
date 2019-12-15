@@ -1,5 +1,8 @@
 use std::stringify;
 use std::fmt;
+use std::cmp::PartialEq;
+use std::collections::HashMap;
+
 use crate::intcode::intcode;
 
 #[macro_export]
@@ -55,15 +58,110 @@ makeIntEnum!
         Paddle = 3,
         Ball = 4,
     } with intcode::ValueType,
-    derive(Copy, Clone)
+    derive(Copy, Clone, PartialEq)
+}
+
+fn runGame(code: &Vec<intcode::ValueType>) -> HashMap<(intcode::ValueType, intcode::ValueType), TileType>
+{
+    let mut computer = intcode::IntCodeComputer::new();
+    let mut field = HashMap::new();
+    computer.loadCode(code);
+    loop
+    {
+        let x = if let Some(output) = computer.pipe(None)
+        {
+            output
+        }
+        else
+        {
+            return field;
+        };
+
+        let y = computer.pipe(None).unwrap();
+        let tile = TileType::from(computer.pipe(None).unwrap()).expect("Unknown tile");
+        field.insert((x, y), tile);
+    }
+}
+
+fn runGameWithScore(code: &Vec<intcode::ValueType>) -> intcode::ValueType
+{
+    let mut computer = intcode::IntCodeComputer::new();
+    let mut field = HashMap::new();
+    computer.loadCode(code);
+    computer.mem[0] = 2;
+    let mut ball_x: intcode::ValueType = -1;
+    let mut pad_x: intcode::ValueType = -1;
+    let mut score = 0;
+    let mut input: Option<intcode::ValueType> = None;
+    loop
+    {
+        let x = if let Some(output) = computer.pipe(input)
+        {
+            output
+        }
+        else
+        {
+            return score;
+        };
+
+        let y = computer.pipe(input).unwrap();
+
+        if x == -1 && y == 0
+        {
+            score = computer.pipe(input).unwrap();
+        }
+        else
+        {
+            let tile = TileType::from(computer.pipe(input).unwrap())
+                .expect("Unknown tile");
+            field.insert((x, y), tile);
+
+            if tile == TileType::Paddle
+            {
+                pad_x = x;
+            }
+            else if tile == TileType::Ball
+            {
+                ball_x = x;
+            }
+
+            if pad_x != -1 && ball_x != -1
+            {
+                if pad_x < ball_x
+                {
+                    input = Some(1);
+                }
+                else if pad_x > ball_x
+                {
+                    input = Some(-1);
+                }
+                else
+                {
+                    input = Some(0);
+                }
+            }
+        }
+    }
 }
 
 pub fn part1(input: &str) -> usize
 {
-    0
+    let code = intcode::parse(input);
+    let field = runGame(&code);
+
+    let mut count = 0;
+    for (_, tile) in field
+    {
+        if tile == TileType::Block
+        {
+            count += 1;
+        }
+    }
+    count
 }
 
-pub fn part2(input: &str) -> usize
+pub fn part2(input: &str) -> intcode::ValueType
 {
-    0
+    let code = intcode::parse(input);
+    runGameWithScore(&code)
 }

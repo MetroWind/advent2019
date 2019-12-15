@@ -8,6 +8,13 @@ Learning Rust by doing https://adventofcode.com/2019.
 
 === Build and run
 
+The project does not actually uses any new features in Rust nightly,
+but it still requires nightly to build. I have some procedure macros
+in `advent/meta.rs`. Somehow it seems to conflict with my
+`makeIntEnum` macro. Either of them builds fine in Rust stable alone,
+but they do not build at the same time... The problem is gone in
+nightly.
+
 Run `cargo build` to build, and run `cargo run DAY PART` to run.
 The following example run day 5, part 2.
 
