@@ -5,14 +5,17 @@ use std::time::Instant;
 use std::env;
 use std::process::exit;
 
-mod wires;
-mod vector;
+mod lib
+{
+    pub mod vector;
+    pub mod ratio;
+    pub mod meta;
+}
+
 mod intcode
 {
     pub mod intcode;
 }
-
-mod ratio;
 
 extern crate meta;
 

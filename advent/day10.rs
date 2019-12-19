@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::fs::File;
 use std::io::Write;
 
-use crate::ratio::Ratio;
+use crate::lib::ratio::Ratio;
 
 // enum SpacePoint
 // {

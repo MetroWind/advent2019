@@ -3,8 +3,8 @@ use std::io::{self, Write};
 
 use regex::Regex;
 
-use crate::vector::Vec3;
-use crate::ratio;
+use crate::lib::vector::Vec3;
+use crate::lib::ratio;
 
 #[derive(Copy, Clone, fmt::Debug)]
 struct Moon

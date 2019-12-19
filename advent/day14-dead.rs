@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 
-use crate::ratio;
+use crate::lib::ratio;
 
 type CountType = u64;
 type TreeType = HashMap<String, (Vec<ReactionInput>, CountType)>;
